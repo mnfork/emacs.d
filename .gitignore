@@ -1,0 +1,5 @@
+# autosave files
+auto-save-list/*
+
+# emacs backups
+*~
