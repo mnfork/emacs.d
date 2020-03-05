@@ -1,12 +1,24 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Appearance Setup
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(column-number-mode t)
  '(display-time-mode t)
+ '(package-selected-packages (quote (markdown-mode)))
  '(scroll-bar-mode (quote right))
  '(show-paren-mode t)
  '(text-mode-hook (quote (turn-on-auto-fill text-mode-hook-identify)))
  '(tool-bar-mode nil))
 '(tooltip-mode nil)
 (custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(default ((t (:inherit nil :stipple nil :background "black" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 83 :width normal :foundry "unknown" :family "DejaVu Sans Mono"))))
  '(background "blue")
  '(font-lock-builtin-face ((((class color) (background dark)) (:foreground "Turquoise"))))
@@ -46,6 +58,10 @@
 ;; set font face
 (set-frame-font "monospace" nil t)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; General Behavior
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; remove annoying splash screen
 (setq inhibit-splash-screen t)
 
@@ -64,7 +80,6 @@
 ;; disable M-TAB
 (put 'lisp-complete-symbol 'disabled t)
 
-
 (setq-default indent-tabs-mode nil)
 
 ;; The original value is "\f\\|[      ]*$", so we add the bullets (-), (+), and (*).
@@ -73,3 +88,11 @@
 
 ;; set default column width
 (setq-default fill-column 79)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Package Manager
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'package)
+(add-to-list 'package-archives
+    '("melpa-stable" . "https://stable.melpa.org/packages/"))
+(package-initialize)

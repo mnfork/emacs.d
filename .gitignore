@@ -3,3 +3,10 @@ auto-save-list/*
 
 # emacs backups
 *~
+.#*
+
+# elpa files
+elpa/*
+
+# network-security.data
+network-security.data
