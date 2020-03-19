@@ -11,7 +11,7 @@
  '(evil-search-module (quote evil-search))
  '(package-selected-packages
    (quote
-    (neotree evil-escape evil racket-mode helm helm-descbinds helm-swoop markdown-mode)))
+    (linum-relative evil-collection evil-org org evil-escape evil racket-mode helm helm-descbinds helm-swoop markdown-mode)))
  '(scroll-bar-mode (quote right))
  '(show-paren-mode t)
  '(speedbar-show-unknown-files t)
@@ -121,6 +121,9 @@
 (require 'helm)
 (require 'helm-config)
 
+;; make helm-find-files the default for finding files with the standard keybinding
+(global-set-key (kbd "C-x C-f") 'helm-find-files)
+
 ;; The default "C-x c" is quite close to "C-x C-c", which quits Emacs.
 ;; Changed to "C-c h". Note: We must set "C-c h" globally, because we
 ;; cannot change `helm-command-prefix-key' once `helm-config' is loaded.
@@ -172,11 +175,9 @@
 (require 'sr-speedbar)
 (setq speedbar-use-images nil)
 (global-set-key [f8] 'sr-speedbar-toggle)
-(custom-set-variables '(speedbar-show-unknown-files t))
- 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Evil Mode
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require 'evil)
@@ -187,10 +188,94 @@
 (setq evil-move-cursor-back nil)
 ;; use the evil search mode
 (setq evil-search-module 'evil-search)
-;; add line numbers
-(global-display-line-numbers-mode)
 
 ;; enable evil-escape (exit insert mode with fd)
 (require 'evil-escape)
 (evil-escape-mode)
 (setq-default evil-escape-key-sequence "fd")
+
+;; evil-collection for helm
+;; this has some error related to
+;; https://github.com/emacs-evil/evil-collection/issues/60
+;; (evil-collection-init 'helm)
+
+;; Relative line numbers
+(require 'linum-relative)
+(setq display-line-numbers-type 'relative)
+(global-display-line-numbers-mode)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Org Mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'org)
+(define-key global-map "\C-cl" 'org-store-link)
+(define-key global-map "\C-ca" 'org-agenda)
+(setq org-log-done t)
+(setq org-agenda-files (list "/mnt/workspace/wiki/tasks.org"))
+(require 'evil-org)
+(add-hook 'org-mode-hook 'evil-org-mode)
+(evil-org-set-key-theme '(navigation insert textobjects
+                                     additional calendar todo heading))
+(require 'evil-org-agenda)
+(evil-org-agenda-set-keys)
+
+(setq org-use-fast-todo-selection t)
+
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
+	(sequence "WAITING(w@/!)" "INACTIVE(i)" "|" "CANCELLED(c@/!)" "MEETING")))
+
+;; Custom colors for the keywords
+(setq org-todo-keyword-faces
+      '(("TODO" :foreground "red" :weight bold)
+	("NEXT" :foreground "blue" :weight bold)
+	("DONE" :foreground "forest green" :weight bold)
+	("WAITING" :foreground "orange" :weight bold)
+	("INACTIVE" :foreground "magenta" :weight bold)
+	("CANCELLED" :foreground "forest green" :weight bold)
+	("MEETING" :foreground "forest green" :weight bold)))
+
+(defun air-org-skip-subtree-if-priority (priority)
+  "Skip an agenda subtree if it has a priority of PRIORITY.
+
+PRIORITY may be one of the characters ?A, ?B, or ?C."
+  (let ((subtree-end (save-excursion (org-end-of-subtree t)))
+        (pri-value (* 1000 (- org-lowest-priority priority)))
+        (pri-current (org-get-priority (thing-at-point 'line t))))
+    (if (= pri-value pri-current)
+        subtree-end
+      nil)))
+
+(setq org-agenda-time-grid
+  (quote
+   ((daily today)
+    (0600 800 1000 1200 1400 1600 1800)
+    "......"
+    "----------------")))
+
+(setq org-agenda-custom-commands
+      '(("c" "Tiered agenda view"
+         ((tags "PRIORITY=\"A\""
+                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                 (org-agenda-overriding-header "High-priority unfinished tasks:")))
+          (agenda "")
+          (alltodo ""
+                   ((org-agenda-skip-function
+                     '(or (air-org-skip-subtree-if-priority ?A)
+                          (org-agenda-skip-if nil '(scheduled deadline))))
+                    (org-agenda-overriding-header "Unscheduled Items")))))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Spelling
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; save a new word to personal dictionary without asking
+(setq ispell-silently-savep t)
+;; auto start flyspell for tex documents
+(add-hook 'LaTeX-mode-hook 'flyspell-mode)
+;; auto start flyspell for org documents
+(add-hook 'org-mode-hook 'flyspell-mode)
+;; auto start flyspell for markdown documents
+(add-hook 'markdown-mode-hook 'flyspell-mode)
