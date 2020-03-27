@@ -11,7 +11,7 @@
  '(evil-search-module (quote evil-search))
  '(package-selected-packages
    (quote
-    (linum-relative evil-collection evil-org org evil-escape evil racket-mode helm helm-descbinds helm-swoop markdown-mode)))
+    (nlinum-relative evil-org-agenda evil-surround use-package elpy linum-relative evil-collection evil-org org evil-escape evil racket-mode helm helm-descbinds helm-swoop markdown-mode)))
  '(scroll-bar-mode (quote right))
  '(show-paren-mode t)
  '(speedbar-show-unknown-files t)
@@ -108,174 +108,231 @@
 ;; Package Manager
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (require 'package)
-(add-to-list 'package-archives
-             '("melpa-stable" . "https://stable.melpa.org/packages/"))
+;; (add-to-list 'package-archives
+;;              '("melpa-stable" . "https://stable.melpa.org/packages/"))
 (add-to-list 'package-archives
              '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
+
+;; bootstrap use-package
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(eval-when-compile
+  (require 'use-package))
+(require 'bind-key)
+(setq use-package-always-ensure t)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require 'helm)
-(require 'helm-config)
+(use-package helm
+  :bind (
+         ("M-x" . helm-M-x)
+         ("C-x C-f" . helm-find-files)
+         ("M-y" . helm-show-kill-ring)
+         :map helm-map
+         ("<tab>" . helm-execute-persistent-action) ; rebind tab to run
+                                                    ; persistent action
+         ("C-i" . helm-execute-persistent-action) ; make TAB work in terminal
+         ("C-z" . helm-select-action) ; list actions using C-z
+         )
+  :init
+  ;; The default "C-x c" is quite close to "C-x C-c", which quits Emacs.
+  ;; Changed to "C-c h". Note: We must set "C-c h" globally, because we
+  ;; cannot change `helm-command-prefix-key' once `helm-config' is loaded.
+  (setq helm-command-prefix-key "C-c h")
+  :config
+  (when (executable-find "curl")
+    (setq helm-google-suggest-use-curl-p t))
 
-;; make helm-find-files the default for finding files with the standard keybinding
-(global-set-key (kbd "C-x C-f") 'helm-find-files)
+  (setq helm-split-window-in-side-p           t ; open helm buffer inside
+                                                ; current window, not occupy
+                                                ; whole other window
+        helm-move-to-line-cycle-in-source     t ; move to end or beginning of
+                                                ; source when reaching top or
+                                                ; bottom of source.
+        helm-ff-search-library-in-sexp        t ; search for library in
+                                                ; `require' and
+                                                ; `declare-function' sexp.
+        helm-scroll-amount                    8 ; scroll 8 lines other window
+                                                ; using M-<next>/M-<prior>
+        helm-ff-file-name-history-use-recentf t
+        helm-echo-input-in-header-line t)
+  
+  (setq helm-autoresize-max-height 0)
+  (setq helm-autoresize-min-height 20)
+  (helm-autoresize-mode 1)
 
-;; The default "C-x c" is quite close to "C-x C-c", which quits Emacs.
-;; Changed to "C-c h". Note: We must set "C-c h" globally, because we
-;; cannot change `helm-command-prefix-key' once `helm-config' is loaded.
-(global-set-key (kbd "C-c h") 'helm-command-prefix)
-(global-unset-key (kbd "C-x c"))
+  (helm-mode 1)
+)
 
-(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) ; rebind tab to run persistent action
-(define-key helm-map (kbd "C-i") 'helm-execute-persistent-action) ; make TAB work in terminal
-(define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
-
-(when (executable-find "curl")
-  (setq helm-google-suggest-use-curl-p t))
-
-(setq helm-split-window-in-side-p           t ; open helm buffer inside current window, not occupy whole other window
-      helm-move-to-line-cycle-in-source     t ; move to end or beginning of source when reaching top or bottom of source.
-      helm-ff-search-library-in-sexp        t ; search for library in `require' and `declare-function' sexp.
-      helm-scroll-amount                    8 ; scroll 8 lines other window using M-<next>/M-<prior>
-      helm-ff-file-name-history-use-recentf t
-      helm-echo-input-in-header-line t)
-
-(defun spacemacs//helm-hide-minibuffer-maybe ()
-  "Hide minibuffer in Helm session if we use the header line as input field."
-  (when (with-helm-buffer helm-echo-input-in-header-line)
-    (let ((ov (make-overlay (point-min) (point-max) nil nil t)))
-      (overlay-put ov 'window (selected-window))
-      (overlay-put ov 'face
-                   (let ((bg-color (face-background 'default nil)))
-                     `(:background ,bg-color :foreground ,bg-color)))
-      (setq-local cursor-type nil))))
-
-
-(add-hook 'helm-minibuffer-set-up-hook
-          'spacemacs//helm-hide-minibuffer-maybe)
-
-(setq helm-autoresize-max-height 0)
-(setq helm-autoresize-min-height 20)
-(helm-autoresize-mode 1)
-
-(helm-mode 1)
-
-
-(require 'helm-descbinds)
-(helm-descbinds-mode)
+(use-package helm-descbinds
+  :after helm
+  :demand t
+  :config
+  (helm-descbinds-mode)
+)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Speedbar
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require 'sr-speedbar)
-(setq speedbar-use-images nil)
-(global-set-key [f8] 'sr-speedbar-toggle)
+(use-package sr-speedbar
+  :bind (
+         ("<f8>" . sr-speedbar-toggle)
+         )
+  :config
+  (setq speedbar-use-images nil)
+)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Evil Mode
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require 'evil)
-;; start evil mode
-(evil-mode 1)
-;; allow the cursor to behave more like emacs cursor
-(setq evil-move-beyond-eol t)
-(setq evil-move-cursor-back nil)
-;; use the evil search mode
-(setq evil-search-module 'evil-search)
+(use-package evil
+  :demand t
+  :init
+  (setq evil-move-beyond-eol t)
+  (setq evil-move-cursor-back nil)
+  (setq evil-search-module 'evil-search)
+  :config
+  (evil-mode 1)
+)
 
-;; enable evil-escape (exit insert mode with fd)
-(require 'evil-escape)
-(evil-escape-mode)
-(setq-default evil-escape-key-sequence "fd")
+(use-package evil-escape
+  :after evil
+  :demand t
+  :init
+  (setq-default evil-escape-key-sequence "fd")
+  :config
+  (evil-escape-mode)
+)
 
-;; evil-collection for helm
-;; this has some error related to
-;; https://github.com/emacs-evil/evil-collection/issues/60
-;; (evil-collection-init 'helm)
+(use-package evil-surround
+  :after evil
+  :demand t
+  :config
+  (global-evil-surround-mode 1)
+)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Relative line numbers
-(require 'linum-relative)
-(setq display-line-numbers-type 'relative)
-(global-display-line-numbers-mode)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package nlinum-relative
+  :demand t
+  :config
+  (setq nlinum-relative-redisplay-delay 0)
+  (setq nlinum-relative-current-symbol "")
+  (setq nlinum-relative-offset 0)
+  (nlinum-relative-setup-evil)
+  (global-nlinum-relative-mode)
+)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org Mode
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require 'org)
-(define-key global-map "\C-cl" 'org-store-link)
-(define-key global-map "\C-ca" 'org-agenda)
-(setq org-log-done t)
-(setq org-agenda-files (list "/mnt/workspace/wiki/tasks.org"))
-(require 'evil-org)
-(add-hook 'org-mode-hook 'evil-org-mode)
-(evil-org-set-key-theme '(navigation insert textobjects
-                                     additional calendar todo heading))
-(require 'evil-org-agenda)
-(evil-org-agenda-set-keys)
+(use-package org
+  :bind (
+         ("C-c l" . org-store-link)
+         ("C-c a" . org-agenda)
+         )
+  :init
+  (setq org-log-done t)
+  (setq org-agenda-files (list "/mnt/workspace/wiki/tasks.org"))
+  (setq org-use-fast-todo-selection t)
+  :config
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
+          (sequence "WAITING(w@/!)" "INACTIVE(i)" "|" "CANCELLED(c@/!)" "MEETING")))
 
-(setq org-use-fast-todo-selection t)
+  ;; Custom colors for the keywords
+  (setq org-todo-keyword-faces
+        '(("TODO" :foreground "red" :weight bold)
+          ("NEXT" :foreground "blue" :weight bold)
+          ("DONE" :foreground "forest green" :weight bold)
+          ("WAITING" :foreground "orange" :weight bold)
+          ("INACTIVE" :foreground "magenta" :weight bold)
+          ("CANCELLED" :foreground "forest green" :weight bold)
+          ("MEETING" :foreground "forest green" :weight bold)))
+  
+  (defun air-org-skip-subtree-if-priority (priority)
+    "Skip an agenda subtree if it has a priority of PRIORITY.
 
-(setq org-todo-keywords
-      '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
-	(sequence "WAITING(w@/!)" "INACTIVE(i)" "|" "CANCELLED(c@/!)" "MEETING")))
+     PRIORITY may be one of the characters ?A, ?B, or ?C."
+    (let ((subtree-end (save-excursion (org-end-of-subtree t)))
+          (pri-value (* 1000 (- org-lowest-priority priority)))
+          (pri-current (org-get-priority (thing-at-point 'line t))))
+      (if (= pri-value pri-current)
+          subtree-end
+        nil)))
 
-;; Custom colors for the keywords
-(setq org-todo-keyword-faces
-      '(("TODO" :foreground "red" :weight bold)
-	("NEXT" :foreground "blue" :weight bold)
-	("DONE" :foreground "forest green" :weight bold)
-	("WAITING" :foreground "orange" :weight bold)
-	("INACTIVE" :foreground "magenta" :weight bold)
-	("CANCELLED" :foreground "forest green" :weight bold)
-	("MEETING" :foreground "forest green" :weight bold)))
+  (setq org-agenda-time-grid
+        (quote
+         ((daily today)
+          (0600 800 1000 1200 1400 1600 1800)
+          "......"
+          "----------------")))
 
-(defun air-org-skip-subtree-if-priority (priority)
-  "Skip an agenda subtree if it has a priority of PRIORITY.
+  (setq org-agenda-custom-commands
+        '(("c" "Tiered agenda view"
+           ((tags "PRIORITY=\"A\""
+                  ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                   (org-agenda-overriding-header "High-priority unfinished tasks:")))
+            (agenda "")
+            (alltodo ""
+                     ((org-agenda-skip-function
+                       '(or (air-org-skip-subtree-if-priority ?A)
+                            (org-agenda-skip-if nil '(scheduled deadline))))
+                      (org-agenda-overriding-header "Unscheduled Items")))))))
+)
 
-PRIORITY may be one of the characters ?A, ?B, or ?C."
-  (let ((subtree-end (save-excursion (org-end-of-subtree t)))
-        (pri-value (* 1000 (- org-lowest-priority priority)))
-        (pri-current (org-get-priority (thing-at-point 'line t))))
-    (if (= pri-value pri-current)
-        subtree-end
-      nil)))
-
-(setq org-agenda-time-grid
-  (quote
-   ((daily today)
-    (0600 800 1000 1200 1400 1600 1800)
-    "......"
-    "----------------")))
-
-(setq org-agenda-custom-commands
-      '(("c" "Tiered agenda view"
-         ((tags "PRIORITY=\"A\""
-                ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                 (org-agenda-overriding-header "High-priority unfinished tasks:")))
-          (agenda "")
-          (alltodo ""
-                   ((org-agenda-skip-function
-                     '(or (air-org-skip-subtree-if-priority ?A)
-                          (org-agenda-skip-if nil '(scheduled deadline))))
-                    (org-agenda-overriding-header "Unscheduled Items")))))))
-
+(use-package evil-org
+  :after org
+  :hook org-mode
+  :config
+  (evil-org-set-key-theme '(navigation insert textobjects
+                                       additional calendar todo heading))
+  (require 'evil-org-agenda)
+  (evil-org-agenda-set-keys)
+)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Spelling
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; save a new word to personal dictionary without asking
-(setq ispell-silently-savep t)
-;; auto start flyspell for tex documents
-(add-hook 'LaTeX-mode-hook 'flyspell-mode)
-;; auto start flyspell for org documents
-(add-hook 'org-mode-hook 'flyspell-mode)
-;; auto start flyspell for markdown documents
-(add-hook 'markdown-mode-hook 'flyspell-mode)
+(use-package flyspell
+  :hook (
+         (prog-mode . flyspell-prog-mode)
+         (text-mode . flyspell-mode)
+         )
+  :init
+  ;; save a new word to personal dictionary without asking
+  (setq ispell-silently-savep t)
+)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Python
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; enable elpy
+;; (elpy-enable)
+
+;; activate flyspell for Python buffers
+(add-hook 'python-mode-hook
+          (lambda ()
+            (flyspell-prog-mode)
+            ))
+
+;; activate Hideshow for Python buffers and bind C-c h to toggle block
+(add-hook 'python-mode-hook
+          (lambda ()
+            (hs-minor-mode)
+            (define-key python-mode-map "\C-ch" 'hs-toggle-hiding)
+            ))
+
+;; files ending in ".pyx" should be python-mode
+(add-to-list 'auto-mode-alist '("\\.pyx\\'" . python-mode))
