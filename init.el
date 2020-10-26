@@ -11,7 +11,7 @@
  '(evil-search-module (quote evil-search))
  '(package-selected-packages
    (quote
-    (nlinum-relative evil-org-agenda evil-surround use-package elpy linum-relative evil-collection evil-org org evil-escape evil racket-mode helm helm-descbinds helm-swoop markdown-mode)))
+    (helm-c-yasnippet yasnippet-snippets yassnippet-snippets nlinum-relative evil-org-agenda evil-surround use-package elpy linum-relative evil-collection evil-org org evil-escape evil racket-mode helm helm-descbinds helm-swoop markdown-mode)))
  '(scroll-bar-mode (quote right))
  '(show-paren-mode t)
  '(speedbar-show-unknown-files t)
@@ -247,7 +247,7 @@
   :config
   (setq org-todo-keywords
         '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d)")
-          (sequence "WAITING(w@/!)" "INACTIVE(i)" "|" "CANCELLED(c@/!)" "MEETING")))
+          (sequence "WAITING(w@/!)" "INACTIVE(i)" "|" "CANCELED(c@/!)" "MEETING")))
 
   ;; Custom colors for the keywords
   (setq org-todo-keyword-faces
@@ -256,7 +256,7 @@
           ("DONE" :foreground "forest green" :weight bold)
           ("WAITING" :foreground "orange" :weight bold)
           ("INACTIVE" :foreground "magenta" :weight bold)
-          ("CANCELLED" :foreground "forest green" :weight bold)
+          ("CANCELED" :foreground "forest green" :weight bold)
           ("MEETING" :foreground "forest green" :weight bold)))
   
   (defun air-org-skip-subtree-if-priority (priority)
@@ -292,10 +292,15 @@
 
 (use-package evil-org
   :after org
-  :hook org-mode
+  :demand t
   :config
-  (evil-org-set-key-theme '(navigation insert textobjects
-                                       additional calendar todo heading))
+  (add-hook 'org-mode-hook 'evil-org-mode)
+  (add-hook 'evil-org-mode-hook
+            (lambda ()
+              (evil-org-set-key-theme '(navigation insert textobjects
+                                                   additional calendar todo heading))))
+  ;; (evil-org-set-key-theme '(navigation insert textobjects
+  ;;                                      additional calendar todo heading))
   (require 'evil-org-agenda)
   (evil-org-agenda-set-keys)
 )
@@ -336,3 +341,27 @@
 
 ;; files ending in ".pyx" should be python-mode
 (add-to-list 'auto-mode-alist '("\\.pyx\\'" . python-mode))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Yasnippet
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(use-package yasnippet
+  :demand t
+  :ensure t
+  :diminish (yas-minor-mode)
+  :config
+  (use-package yasnippet-snippets
+    :ensure t)
+  (yas-global-mode t)
+  (define-key yas-minor-mode-map (kbd "<tab>") nil)
+  (define-key yas-minor-mode-map (kbd "C-'") #'yas-expand)
+  (add-to-list #'yas-snippet-dirs "~/.emacs.d/snippets")
+  (yas-reload-all))
+
+
+(use-package helm-c-yasnippet
+  :demand t
+  :bind ("C-c y" . helm-yas-complete))
+
