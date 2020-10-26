@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: meetingNotes
+# key: meetingNotes
+# --
+#+TITLE: $0
+#+DATE: `(format-time-string "%d %B %Y")`
+* Attendees
+  - 
+  - Nick Kaminski
+* Notes
+* Action Items

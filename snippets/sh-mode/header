@@ -1,0 +1,13 @@
+# -*- mode: snippet -*-
+# name: header
+# key: [header]
+# --
+#!/bin/bash
+
+################################# UNCLASSIFIED #################################
+#Script Name     :`(downcase (file-name-nondirectory (buffer-file-name)))`
+#Description     :$0
+#Args            :
+#Author          :Nicholas Kaminski
+#Email           :nkaminsk@ida.org
+################################################################################
